@@ -9,6 +9,8 @@ import urllib.request
 import urllib.parse
 import re
 import bs4
+from multiprocessing.dummy import Pool
+from itertools import repeat
 
 
 # String constants
@@ -139,6 +141,13 @@ def get_page(url):
 # }
 def get_course_desc(num, semester, year):
 
+    # Initialize variables
+    desc = ""
+    prereqs = ""
+    prereqs_obj = create_reqs_obj(prereqs)
+    coreqs = ""
+    coreqs_obj = create_reqs_obj(coreqs)
+
     # Generate target URL
     params = {
         'COURSE': num,
@@ -147,19 +156,36 @@ def get_course_desc(num, semester, year):
     url = DESC_URL + '?' + urllib.parse.urlencode(params)
 
     # Retrieve page
+    print('Getting description for {} ...'.format(num))
     soup = get_page(url)
 
-    # Parse data
-    desc = soup.find(id='course-detail-description').p.string
-    (prereqs, coreqs) = parse_reqs(soup)
+    try:
+        # Parse data
+        desc = soup.find(id='course-detail-description').p.string
+        (prereqs, coreqs) = parse_reqs(soup)
 
-    prereqs_obj = create_reqs_obj(prereqs)
-    coreqs_obj = create_reqs_obj(coreqs)
+        prereqs_obj = create_reqs_obj(prereqs)
+        coreqs_obj = create_reqs_obj(coreqs)
+    except AttributeError as e:
+        print('Failed to retrive description for {}. '.format(num), e)
 
-    return {
-        'desc': desc,
-        'prereqs': prereqs,
-        'prereqs_obj': prereqs_obj,
-        'coreqs': coreqs,
-        'coreqs_obj': coreqs_obj
-    }
+    return {num: 
+                {
+                 'desc': desc,
+                 'prereqs': prereqs,
+                 'prereqs_obj': prereqs_obj,
+                 'coreqs': coreqs,
+                 'coreqs_obj': coreqs_obj,
+                 }
+            }
+
+def get_course_desc_bulk(nums, semester, year, pool_size=8):
+    pool = Pool(pool_size)
+    results = pool.starmap(get_course_desc, zip(nums, repeat(semester), repeat(year)))
+    pool.close()
+    pool.join()
+    print("Done getting descriptions!")
+    descs = {}
+    for desc in results:
+        descs.update(desc)
+    return descs
