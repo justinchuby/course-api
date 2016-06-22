@@ -10,7 +10,7 @@
 import json
 import os.path
 from datetime import date
-from cmu_course_api.parse_descs import get_course_desc
+from cmu_course_api.parse_descs import get_course_desc_bulk
 from cmu_course_api.parse_schedules import parse_schedules
 from cmu_course_api.parse_fces import parse_fces
 
@@ -36,12 +36,15 @@ def aggregate(schedules, fces):
     semester = schedules['semester'].split(' ')[0]
     semester = SEMESTER_ABBREV[semester]
     year = schedules['semester'].split(' ')[-1][2:]
+    
+    nums = [course['num'] for course in schedules['schedules']]
+    descs = get_course_desc_bulk(nums, semester, year, pool_size=10)
 
     for course in schedules['schedules']:
 
         print('Getting description for ' + course['num'] + '...')
 
-        desc = get_course_desc(course['num'], semester, year)
+        desc = descs[course['num']]
         desc['name'] = course['title']
 
         try:
