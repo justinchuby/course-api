@@ -42,7 +42,7 @@ def aggregate(schedules, fces):
     semester = SEMESTER_ABBREV[semester]
     year = schedules['semester'].split(' ')[-1][2:]
 
-    count = cpu_count()
+    count = cpu_count() * 2
     lock = threading.Lock()
     queue = Queue()
 
